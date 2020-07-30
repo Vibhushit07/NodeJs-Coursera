@@ -109,7 +109,7 @@ dishRouter.route('/:dishId/comments')
             .then((dish) => {
                 Dishes.findById(dish._id)
                     .populate('comments.author')
-                    .then( dihs => {
+                    .then( dish => {
                         res.statusCode = 200;
                         res.setHeader('Content-Type', 'application/json');                
                         res.json(dish);
@@ -185,13 +185,13 @@ dishRouter.route('/:dishId/comments/:commentId')
 .put(authenticate.verifyUser, (req, res, next) => {
     Dishes.findById(req.params.dishId)
     .then((dish) => {
-        if(dish != null && dish.comments.id(req.params.commentId) != null) {
+        if(dish != null && dish.comments.id(req.params.commentId) != null && dish.comments.author.equals(req.user._id)) {
             if(req.body.rating) {
                 dish.comments.id(req.params.commentId).rating = req.body.rating;
             }
 
             if(req.body.comment) {
-                dish.comments.id(req.params.commentId).rating = req.body.comment;
+                dish.comments.id(req.params.commentId).comment = req.body.comment;
             }
 
             dish.save()
@@ -211,8 +211,13 @@ dishRouter.route('/:dishId/comments/:commentId')
             err.status = 404;
             return next(err);
 
-        } else {
+        } else if(dish.comments.id(req.params.commentId) == null) {
             err = new Error('Comment ' + req.params.commentId + ' not found');
+            err.status = 404;
+            return next(err);
+
+        } else {
+            err = new Error('You can only update your comment');
             err.status = 404;
             return next(err);
         }
@@ -222,7 +227,7 @@ dishRouter.route('/:dishId/comments/:commentId')
 .delete(authenticate.verifyUser, (req, res, next) => {
     Dishes.findById(req.params.dishId)
     .then((dish) => {
-        if(dish != null && dish.comments.id(req.params.commentId) != null) {
+        if(dish != null && dish.comments.id(req.params.commentId) != null && dish.comments.author.equals(req.user._id)) {
             dish.comments.id(req.params.commentId).remove();
             
             dish.save()
@@ -241,8 +246,13 @@ dishRouter.route('/:dishId/comments/:commentId')
             err.status = 404;
             return next(err);
 
-        } else {
+        } else if(dish.comments.id(req.params.commentId) == null) {
             err = new Error('Comment ' + req.params.commentId + ' not found');
+            err.status = 404;
+            return next(err);
+
+        } else {
+            err = new Error('You can only delete your comment');
             err.status = 404;
             return next(err);
         }
